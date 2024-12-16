@@ -1,8 +1,13 @@
 import os
+import requests
 import subprocess
 import time
 import warnings
 from urllib.parse import urlparse
+from huggingface_hub import model_info, snapshot_download
+
+
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 
 async def resolve_model_path(url_or_local_path: str) -> str:
@@ -34,8 +39,44 @@ async def resolve_model_path(url_or_local_path: str) -> str:
             "To minimize boot time, store model assets externally on Replicate."
         )
         return url_or_local_path
+    elif is_hf_model(url_or_local_path):
+        return snapshot_download(url_or_local_path)
     else:
         raise ValueError(f"E1000: Unsupported model path scheme: {parsed_url.scheme}")
+
+
+def is_hf_model(model_name: str) -> bool:
+    """Check whether the given model name is a valid HF model"""
+    try:
+        model_info(model_name, token=HF_TOKEN)
+        return True
+    except requests.exceptions.HTTPError:
+        return False
+
+
+def download_huggingface(model_name: str) -> str:
+    """
+    Downloads a Hugging Face model from the Hub
+
+    Args:
+        model_name (str): Name of the Hugging Face model to download.
+
+    Returns:
+        str: Path to the directory where the model was extracted.
+    """
+    filename = model_name.split("/")[-1]
+    models_dir = os.path.join(os.getcwd(), "models")
+    path = os.path.join(models_dir, filename)
+    if os.path.exists(path) and os.listdir(path):
+        print(f"Files already present in `{path}`.")
+        return path
+    os.makedirs(models_dir, exist_ok=True)
+    snapshot_download(
+        repo_id=model_name,
+        token=HF_TOKEN,
+        local_dir=filename,
+    )
+    return filename
 
 
 async def download_tarball(url: str) -> str:
