@@ -17,6 +17,13 @@ TRITON_START_TIMEOUT_MINUTES = 5
 TRITON_TIMEOUT = 120
 VLLM_ENV = os.environ.get("PYTHON_VLLM", "/vllm-env")
 
+## Template ####################################################################
+# This is the key template where the static model weight URLs will be placed.
+# The wrapper script will replace this with either a single string or a list of
+# strings that will be resolved with resolve_model_path.
+MODEL_WEIGHTS = {{ MODEL_WEIGHTS_VAR }}
+################################################################################
+
 class PredictorConfig(NamedTuple):
     prompt_template: Optional[str] = None
 
@@ -46,18 +53,8 @@ class Predictor(BasePredictor):
         self.proc.kill()
         return False
 
-    async def setup(
-        self, weights: str
-    ):  # pylint: disable=invalid-overridden-method, signature-differs
-        if not weights:
-            raise ValueError(
-                "Weights must be provided. "
-                "Set COG_WEIGHTS environment variable to "
-                "a URL to a tarball containing the weights file "
-                "or a path to the weights file."
-            )
-
-        weights = await resolve_model_path(str(weights))
+    async def setup(self):
+        weights = await resolve_model_path(str(MODEL_WEIGHTS))
         res = await self.start_vllm(
             weights,
             {
