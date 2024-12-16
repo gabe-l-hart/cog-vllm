@@ -1,4 +1,3 @@
-import json
 import os
 import time
 import subprocess
@@ -7,7 +6,6 @@ from typing import NamedTuple, Optional
 from openai import AsyncOpenAI
 import httpx
 
-# import torch
 from cog import BasePredictor, ConcatenateIterator, Input
 
 from utils import resolve_model_path
@@ -47,11 +45,10 @@ class Predictor(BasePredictor):
         await asyncio.sleep(0.001)
         self.proc.kill()
         return False
-    
+
     async def setup(
         self, weights: str
     ):  # pylint: disable=invalid-overridden-method, signature-differs
-
         if not weights:
             raise ValueError(
                 "Weights must be provided. "
@@ -70,7 +67,7 @@ class Predictor(BasePredictor):
             }
         )
 
-        
+
         self.client = AsyncOpenAI(
             api_key="EMPTY",
             base_url="http://localhost:8000/v1"
@@ -143,6 +140,6 @@ class Predictor(BasePredictor):
         )
         async for completion in chat_response:
             yield completion.choices[0].delta.content
-            
+
         self.log(f"Generation took {time.time() - start:.2f}s")
         self.log(f"Formatted prompt: {prompt}")
