@@ -54,7 +54,7 @@ class Predictor(BasePredictor):
         return False
 
     async def setup(self):
-        weights = await resolve_model_path(str(MODEL_WEIGHTS))
+        weights = await resolve_model_path(MODEL_WEIGHTS)
         res = await self.start_vllm(
             weights,
             {
