@@ -1,29 +1,42 @@
+# Standard
 import os
 import requests
 import subprocess
 import time
 import warnings
 from urllib.parse import urlparse
+
+# Third Party
 from huggingface_hub import model_info, snapshot_download
 
 
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 
-async def resolve_model_path(url_or_local_path: str) -> str:
+async def resolve_model_path(url_or_local_path: str | list[str]) -> str:
     """
     Resolves the model path, downloading if necessary.
 
     Args:
-        url_or_local_path (str): URL to the tarball or local path to a directory containing the model artifacts.
+        url_or_local_path (str | list[str]): URL to the tarball or local path to a directory containing the model artifacts.
 
     Returns:
         str: Path to the directory containing the model artifacts.
     """
+    # List of URLs
+    if isinstance(url_or_local_path, list):
+        return await download_multi(url_or_local_path)
 
+    # Single URL to a tarball
     parsed_url = urlparse(url_or_local_path)
     if parsed_url.scheme == "http" or parsed_url.scheme == "https":
         return await download_tarball(url_or_local_path)
+
+    # HF model
+    elif is_hf_model(url_or_local_path):
+        return snapshot_download(url_or_local_path)
+
+    # Single URL or path to a file
     elif parsed_url.scheme == "file" or parsed_url.scheme == "":
         if not os.path.exists(parsed_url.path):
             raise ValueError(
@@ -39,8 +52,8 @@ async def resolve_model_path(url_or_local_path: str) -> str:
             "To minimize boot time, store model assets externally on Replicate."
         )
         return url_or_local_path
-    elif is_hf_model(url_or_local_path):
-        return snapshot_download(url_or_local_path)
+
+    # Unhandled
     else:
         raise ValueError(f"E1000: Unsupported model path scheme: {parsed_url.scheme}")
 
@@ -101,3 +114,30 @@ async def download_tarball(url: str) -> str:
     subprocess.check_call(command, close_fds=True)
     print(f"Downloaded model assets in {time.time() - start_time:.2f}s")
     return path
+
+
+async def download_multi(urls: list[str]) -> str:
+    """
+    Use pget to download multiple files into a single directory
+
+    Args:
+        urls (list[str]): List of URLs to download.
+
+    Returns:
+        str: Path to the directory where the downloaded files are stored.
+    """
+    outdir = os.path.join(os.getcwd(), "model")
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    print(f"Downloading model assets to {outdir}...")
+    start_time = time.time()
+    command = ["pget", "multifile", "-"]
+    manifest = "\n".join([
+        "{} {}".format(url, os.path.join(outdir, os.path.basename(url)))
+        for url in urls
+    ])
+    proc = subprocess.Popen(command, stdin=subprocess.PIPE)
+    proc.stdin.write(manifest.encode("utf-8"))
+    proc.communicate()
+    print(f"Downloaded model assets in {time.time() - start_time:.2f}s")
+    return outdir
