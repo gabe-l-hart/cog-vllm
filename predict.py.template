@@ -60,7 +60,6 @@ class Predictor(BasePredictor):
             {
                 "dtype": "auto",
                 "tensor_parallel_size": 1,
-                "max_model_len": 4096,
             }
         )
 
