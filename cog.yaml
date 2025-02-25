@@ -14,7 +14,7 @@ build:
     - cog==0.10.0-alpha21
   run:
     - curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.4.20/uv-installer.sh | sh
-    - /root/.cargo/bin/uv venv ./vllm-env && /root/.cargo/bin/uv pip install -p ./vllm-env setuptools vllm==0.6.1.post2
+    - /root/.cargo/bin/uv venv ./vllm-env && /root/.cargo/bin/uv pip install -p ./vllm-env setuptools vllm==0.7.3
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.9.1/pget_linux_x86_64" && chmod +x /usr/local/bin/pget
 
 predict: "predict.py:Predictor"
