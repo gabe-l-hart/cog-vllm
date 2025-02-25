@@ -11,10 +11,7 @@ from cog import BasePredictor, ConcatenateIterator, Input
 from utils import resolve_model_path
 
 
-SYSTEM_PROMPT = "You are a helpful assistant."
-
 TRITON_START_TIMEOUT_MINUTES = 5
-TRITON_TIMEOUT = 120
 VLLM_ENV = os.environ.get("PYTHON_VLLM", "/vllm-env")
 
 ## Template ####################################################################
@@ -76,7 +73,7 @@ class Predictor(BasePredictor):
         prompt: str = Input(description="Prompt", default=""),
         system_prompt: str = Input(
             description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Ignored for non-chat models.",
-            default="You are a helpful assistant.",
+            default="",
         ),
         min_tokens: int = Input(
             description="The minimum number of tokens the model should generate as output.",
