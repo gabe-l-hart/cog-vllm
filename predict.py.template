@@ -1,13 +1,19 @@
-import os
-import time
-import subprocess
-import asyncio
+# Standard
 from typing import NamedTuple, Optional
+import asyncio
+import base64
+import os
+import subprocess
+import time
+
+# Third Party
 from openai import AsyncOpenAI
 import httpx
 
-from cog import BasePredictor, ConcatenateIterator, Input
+# First Party
+from cog import BasePredictor, ConcatenateIterator, Input, Path
 
+# Local
 from utils import resolve_model_path
 
 
@@ -71,6 +77,7 @@ class Predictor(BasePredictor):
     async def predict(  # pylint: disable=invalid-overridden-method, arguments-differ
         self,
         prompt: str = Input(description="Prompt", default=""),
+        image: Path = Input(description="Image input", default=None),
         system_prompt: str = Input(
             description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Ignored for non-chat models.",
             default="",
@@ -111,16 +118,35 @@ class Predictor(BasePredictor):
             stop = (
                 list(stop_sequences) if isinstance(stop_sequences, list) else []
             )
+
+        # Construct the message sequence for the chat API
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        user_content = None
+        if prompt and not image:
+            user_content = prompt
+        else:
+            user_content = []
+            if prompt:
+                user_content.append({"type": "text", "text": prompt})
+            if image:
+                with open(image, "rb") as handle:
+                    image_b64 = base64.b64encode(handle.read()).decode("utf-8")
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image;base64,{image_b64}"}
+                })
+        if user_content:
+            messages.append({"role": "user", "content": user_content})
+
         # TODO: figure out how to add top_k, min_tokens, frequency_penalty, presence_penalty, beam search
         chat_response = await self.client.chat.completions.create(
             model=self.model_id,
             # echo=False,
             n=1,
             stream=True,
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
+            messages = messages,
             # top_k=(-1 if (top_k or 0) == 0 else top_k),
             top_p=top_p,
             stop=stop,
