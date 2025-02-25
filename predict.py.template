@@ -80,7 +80,7 @@ class Predictor(BasePredictor):
         image: Path = Input(description="Image input", default=None),
         system_prompt: str = Input(
             description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Ignored for non-chat models.",
-            default="",
+            default="A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.",
         ),
         # min_tokens: int = Input(
         #     description="The minimum number of tokens the model should generate as output.",
@@ -110,8 +110,6 @@ class Predictor(BasePredictor):
         ),
     ) -> ConcatenateIterator[str]:
         start = time.time()
-
-        system_prompt = "" if system_prompt is None else system_prompt
         if isinstance(stop_sequences, str) and stop_sequences:
             stop = stop_sequences.split(",")
         else:
